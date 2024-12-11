@@ -1,23 +1,20 @@
-# Используем базовый образ с Maven и JDK
-FROM maven:3.8.5-openjdk-11 AS build
+# Используем официальный образ Maven для сборки
+FROM maven:3.8.4-openjdk-11-slim AS build
 
 # Устанавливаем рабочую директорию
 WORKDIR /app
 
-# Копируем pom.xml и скачиваем зависимости
+# Копируем файл pom.xml и зависимости
 COPY pom.xml .
-RUN mvn dependency:resolve
 
-# Копируем все остальные файлы и собираем проект
-COPY src ./src
-RUN mvn package
+# Собираем зависимости
+RUN mvn dependency:go-offline
 
-# Второй этап — создание легковесного образа для запуска
-FROM openjdk:11-jre-slim
-WORKDIR /app
+# Копируем весь проект
+COPY . .
 
-# Копируем созданный jar-файл из предыдущего этапа
-COPY --from=build /app/target/docker_maven-1.0-SNAPSHOT.jar app.jar
+# Собираем JAR файл
+RUN mvn clean package
 
-# Команда запуска jar-файла
-CMD ["java", "-jar", "app.jar"]
+# Запускаем приложение
+ENTRYPOINT ["java", "-jar", "target/docker_maven-1.0-SNAPSHOT.jar"]
